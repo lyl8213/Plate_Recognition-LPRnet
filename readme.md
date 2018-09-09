@@ -60,6 +60,6 @@ and then the screen will show:
 
 then:
 
-print 'train' for training
+input 'train' for training
 
-print 'test' for testing
+input 'test' for testing
