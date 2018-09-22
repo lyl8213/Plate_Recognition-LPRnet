@@ -2,7 +2,7 @@
 this code is based on the paper :      LPRNet: License Plate Recognition via Deep Neural Networks
  https://arxiv.org/pdf/1806.10447.pdf
  
- it is a kind of light network for plate recognntion.
+ it is a kind of light network for plate recognition.
  
  it uses CNN + CTC loss to recognise the plate without segmentation.
  
@@ -63,3 +63,6 @@ then:
 input 'train' for training
 
 input 'test' for testing
+
+
+if you want to train your own data,you just need to rename your plate file as "province(convert the Chinese character  to the coresponding code according to 'dict' in the LPRnet.py)_the numbers and alphabet of the plate", the examples is in the folder 'train'. 
