@@ -176,8 +176,11 @@ def decode_a_seq(indexes, spars_tensor):
 
 def small_basic_block(x,im,om):
     x = conv(x,im,int(om/4),ksize=[1,1])
+    x = tf.nn.relu(x)
     x = conv(x,int(om/4),int(om/4),ksize=[3,1],pad='SAME')
+    x = tf.nn.relu(x)
     x = conv(x,int(om/4),int(om/4),ksize=[1,3],pad='SAME')
+    x = tf.nn.relu(x)
     x = conv(x,int(om/4),om,ksize=[1,1])
     return x
 
