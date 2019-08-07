@@ -4,6 +4,8 @@ import time
 import cv2
 import os
 import random
+import argparse
+from DataAug import data_augmentation
 
 #训练最大轮次
 num_epochs = 300
@@ -116,6 +118,7 @@ class TextImageGenerator:
         for j, i in enumerate(range(start, end)):
             fname = self._filenames[i]
             img = cv2.imread(os.path.join(self._img_dir, fname))
+            img = data_augmentation(img)
             img = cv2.resize(img, (self._img_w, self._img_h), interpolation=cv2.INTER_CUBIC)
             images[j, ...] = img
         images = np.transpose(images, axes=[0, 2, 1, 3])
@@ -308,7 +311,7 @@ def get_train_model(num_channels, label_len, b, img_size):
 
     return logits, inputs, targets, seq_len
 
-def train(a):
+def train(mode, checkpoint):
 
     train_gen = TextImageGenerator(img_dir=ti,
                                    label_file=tl,
@@ -407,13 +410,32 @@ def train(a):
         #print(b_cost, steps)
         if steps > 0 and steps % REPORT_STEPS == 0:
             do_report(val_gen,test_num)
-            saver.save(session, "./model/LPRtf3.ckpt", global_step=steps)
+
+            ckpt_dir = './checkpoint/'
+            ckpt_file = os.path.join(ckpt_dir, 'LPRtf3.ckpt')
+            if not os.path.isdir(ckpt_dir): os.mkdir(ckpt_dir)
+
+            saver.save(session, ckpt_file, global_step=steps)
         return b_cost, steps
+
+    def restore_checkpoint(saver, ckpt, is_train=True):
+        try:
+            saver.restore(session, ckpt)
+            print('restore from checkpoint: {}'.format(ckpt))
+            return True
+        except:
+            if is_train:
+                print("train from scratch")
+            else:
+                print("no valid checkpoint provided")
+            return False
 
     with tf.Session() as session:
         session.run(init)
         saver = tf.train.Saver(tf.global_variables(), max_to_keep=100)
-        if a=='train':
+        if mode=='train':
+            restore_checkpoint(saver, checkpoint)
+
             for curr_epoch in range(num_epochs):
                 print("Epoch.......", curr_epoch)
                 train_cost = train_ler = 0
@@ -440,9 +462,10 @@ def train(a):
                 log = "Epoch {}/{}, steps = {}, train_cost = {:.3f}, train_ler = {:.3f}, val_cost = {:.3f}, val_ler = {:.3f}, time = {:.3f}s, learning_rate = {}"
                 print(log.format(curr_epoch + 1, num_epochs, steps, train_cost, train_ler, val_cs/test_num, val_ls/test_num,
                                  time.time() - start, lr))
-        if a =='test':
-            testi='valid'
-            saver.restore(session, './model8.24best/LPRtf3.ckpt-25000')
+        if mode =='test':
+            if not restore_checkpoint(saver, checkpoint, is_train=False):
+                return
+            testi = 'valid'
             test_gen = TextImageGenerator(img_dir=testi,
                                            label_file=None,
                                            batch_size=BATCH_SIZE,
@@ -453,5 +476,10 @@ def train(a):
 
 
 if __name__ == "__main__":
-        a = input('train or test:')
-        train(a)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("-c", "--ckpt", help="checkpoint",
+                        type=str, default="./model8.24best/LPRtf3.ckpt-25000")
+    parser.add_argument("-m", "--mode", help="train or test",
+                        type=str, default="train")
+    args = parser.parse_args()
+    train(args.mode, checkpoint=args.ckpt)
